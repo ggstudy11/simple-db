@@ -64,6 +64,11 @@ public class Database {
      * Method used for testing -- create a new instance of the buffer pool and
      * return it
      */
+
+    /**
+    * 用于测试BufferPool，暂时不知道为什么需要测试BufferPool，因为BufferPool是private字段，这里采用反射重新初始化。
+    *
+    */
     public static BufferPool resetBufferPool(int pages) {
         java.lang.reflect.Field bufferPoolF = null;
         try {
