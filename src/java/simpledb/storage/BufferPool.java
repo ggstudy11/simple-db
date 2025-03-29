@@ -31,6 +31,13 @@ public class BufferPool {
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
 
+    public static class BufferPage {
+        public Page page;
+        public Permissions perm;
+        public TransactionId tid;
+    }
+
+    private final Map<PageId, BufferPage> pages;
     /**
      * Default number of pages passed to the constructor. This is used by
      * other classes. BufferPool should use the numPages argument to the
@@ -45,6 +52,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // TODO: some code goes here
+        pages = new HashMap<>(numPages);
     }
 
     public static int getPageSize() {
@@ -79,7 +87,15 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // TODO: some code goes here
-        return null;
+        // hint: use DbFile.readPage() to access Page of a DbFile
+        if (!pages.containsKey(pid)) {
+            throw new DbException("Page not found in Buffer Pool!");
+        }
+        BufferPage bufferPage = pages.get(pid);
+        if (bufferPage.perm == Permissions.READ_WRITE && bufferPage.tid != tid) {
+            throw new DbException("Page is already locked by another transaction!");
+        }
+        return bufferPage.page;
     }
 
     /**
