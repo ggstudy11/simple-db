@@ -334,7 +334,7 @@ public class HeapPage implements Page {
     private void countTuples() {
         int usedTuples = 0;
         while (true) {
-            if (!isSlotUsed(usedTuples)) {
+            if (usedTuples >= this.getNumTuples() || !isSlotUsed(usedTuples)) {
                 break;
             }
             this.usedTuples.add(tuples[usedTuples]);
