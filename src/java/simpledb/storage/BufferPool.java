@@ -31,13 +31,7 @@ public class BufferPool {
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
 
-    public static class BufferPage {
-        public Page page;
-        public Permissions perm;
-        public TransactionId tid;
-    }
-
-    private final Map<PageId, BufferPage> pages;
+    private final ConcurrentHashMap<Integer, Page> pages;
     /**
      * Default number of pages passed to the constructor. This is used by
      * other classes. BufferPool should use the numPages argument to the
@@ -45,6 +39,7 @@ public class BufferPool {
      */
     public static final int DEFAULT_PAGES = 50;
 
+    private int numPages;
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -52,7 +47,8 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // TODO: some code goes here
-        pages = new HashMap<>(numPages);
+        pages = new ConcurrentHashMap<>();
+        this.numPages = numPages;
     }
 
     public static int getPageSize() {
@@ -88,14 +84,17 @@ public class BufferPool {
             throws TransactionAbortedException, DbException {
         // TODO: some code goes here
         // hint: use DbFile.readPage() to access Page of a DbFile
-        if (!pages.containsKey(pid)) {
-            throw new DbException("Page not found in Buffer Pool!");
+        if (!pages.containsKey(pid.getPageNumber())) {
+            // throw new DbException("Page not found in Buffer Pool!");
+            if (pages.size() == numPages) {
+                throw new DbException("BufferPool is not empty!");
+            }
+            DbFile f = Database.getCatalog().getDatabaseFile(pid.getTableId());
+            Page page = f.readPage(pid);
+            pages.put(pid.getPageNumber(), page);
         }
-        BufferPage bufferPage = pages.get(pid);
-        if (bufferPage.perm == Permissions.READ_WRITE && bufferPage.tid != tid) {
-            throw new DbException("Page is already locked by another transaction!");
-        }
-        return bufferPage.page;
+        Page page = pages.get(pid.getPageNumber());
+        return page;
     }
 
     /**

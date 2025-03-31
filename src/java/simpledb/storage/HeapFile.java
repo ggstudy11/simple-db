@@ -68,16 +68,11 @@ public class HeapFile implements DbFile {
                 return iterator.next();
             else {
                 nextPgNo++;
-                if (nextPgNo > numPages()) {
+                if (nextPgNo == numPages()) {
                     return null;
                 }
                 this.pid = new HeapPageId(getId(), nextPgNo);
-                try {
-                    HeapPage hpg = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY));
-                } catch (DbException e) {
-                    HeapPage hpg = (HeapPage)readPage(pid);
-                    this.iterator = hpg.iterator();
-                }
+                this.iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
                 if (iterator.hasNext()) return iterator.next();
                 return null;
             }
@@ -86,13 +81,7 @@ public class HeapFile implements DbFile {
 
         @Override
         public void open() throws DbException, TransactionAbortedException {
-            try {
-                HeapPage hpg = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY));
-            } catch (DbException e) {
-                HeapPage hpg = (HeapPage)readPage(pid);
-                this.iterator = hpg.iterator();
-            }
-            
+            this.iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
         }
 
         @Override
@@ -157,18 +146,18 @@ public class HeapFile implements DbFile {
     }
 
     // see DbFile.java for javadocs
-    public Page readPage(PageId pid) {
+    public Page readPage(PageId pid){
         long offset = pid.getPageNumber() * BufferPool.getPageSize();
         byte[] data = new byte[BufferPool.getPageSize()];
+        HeapPage page = null;
         try (RandomAccessFile raf = new RandomAccessFile(f, "r")){
             raf.seek(offset);
             raf.read(data);
-            HeapPage page = new HeapPage((HeapPageId)pid, data);
-            return page;
+            page = new HeapPage((HeapPageId)pid, data);
         } catch(IOException e) {
-            e.printStackTrace();
-            return null;
+            
         }
+        return page;
         // TODO: some code goes here
     }
 
