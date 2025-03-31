@@ -7,8 +7,10 @@ import simpledb.common.Debug;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.List;
 
 /**
  * Each instance of HeapPage stores data for one page of HeapFiles and
@@ -24,6 +26,8 @@ public class HeapPage implements Page {
     final byte[] header;
     final Tuple[] tuples;
     final int numSlots;
+    private int numUnusedSlots;
+    private List<Tuple> usedTuples = new ArrayList<>();
 
     byte[] oldData;
     private final Byte oldDataLock = (byte) 0;
@@ -49,6 +53,7 @@ public class HeapPage implements Page {
         this.pid = id;
         this.td = Database.getCatalog().getTupleDesc(id.getTableId());
         this.numSlots = getNumTuples();
+        this.numUnusedSlots = numSlots;
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
@@ -59,14 +64,16 @@ public class HeapPage implements Page {
         tuples = new Tuple[numSlots];
         try {
             // allocate and read the actual records of this page
-            for (int i = 0; i < tuples.length; i++)
+            for (int i = 0; i < tuples.length; i++) {
                 tuples[i] = readNextTuple(dis, i);
+            }
         } catch (NoSuchElementException e) {
             e.printStackTrace();
         }
         dis.close();
 
         setBeforeImage();
+        this.countTuples();
     }
 
     /**
@@ -76,7 +83,7 @@ public class HeapPage implements Page {
      */
     private int getNumTuples() {
         // TODO: some code goes here
-        return 0;
+        return (BufferPool.getPageSize() * 8) / (td.getSize() * 8 + 1);
 
     }
 
@@ -88,7 +95,7 @@ public class HeapPage implements Page {
     private int getHeaderSize() {
 
         // TODO: some code goes here
-        return 0;
+        return (int)Math.ceil(getNumTuples() / 8);
 
     }
 
@@ -122,7 +129,8 @@ public class HeapPage implements Page {
      */
     public HeapPageId getId() {
         // TODO: some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return this.pid;
+        // throw new UnsupportedOperationException("implement this");
     }
 
     /**
@@ -294,7 +302,8 @@ public class HeapPage implements Page {
      */
     public int getNumUnusedSlots() {
         // TODO: some code goes here
-        return 0;
+
+        return this.numUnusedSlots;
     }
 
     /**
@@ -302,7 +311,7 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // TODO: some code goes here
-        return false;
+        return ((header[i / 8] >> (i % 8)) & 1) == 1;
     }
 
     /**
@@ -319,8 +328,19 @@ public class HeapPage implements Page {
      */
     public Iterator<Tuple> iterator() {
         // TODO: some code goes here
-        return null;
+        return usedTuples.iterator();
     }
 
+    private void countTuples() {
+        int usedTuples = 0;
+        while (true) {
+            if (!isSlotUsed(usedTuples)) {
+                break;
+            }
+            this.usedTuples.add(tuples[usedTuples]);
+            usedTuples++;
+        }
+        this.numUnusedSlots -= usedTuples;
+    }
 }
 

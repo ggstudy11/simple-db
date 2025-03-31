@@ -7,6 +7,9 @@ import java.util.Objects;
  */
 public class HeapPageId implements PageId {
 
+
+    private final int tableId;
+    private final int pgNo;
     /**
      * Constructor. Create a page id structure for a specific page of a
      * specific table.
@@ -16,6 +19,8 @@ public class HeapPageId implements PageId {
      */
     public HeapPageId(int tableId, int pgNo) {
         // TODO: some code goes here
+        this.tableId = tableId;
+        this.pgNo = pgNo;
     }
 
     /**
@@ -23,7 +28,7 @@ public class HeapPageId implements PageId {
      */
     public int getTableId() {
         // TODO: some code goes here
-        return 0;
+        return this.tableId;
     }
 
     /**
@@ -32,7 +37,7 @@ public class HeapPageId implements PageId {
      */
     public int getPageNumber() {
         // TODO: some code goes here
-        return 0;
+        return this.pgNo;
     }
 
     /**
@@ -43,7 +48,8 @@ public class HeapPageId implements PageId {
      */
     public int hashCode() {
         // TODO: some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return this.pgNo + this.tableId;
+        // throw new UnsupportedOperationException("implement this");
     }
 
     /**
@@ -54,7 +60,12 @@ public class HeapPageId implements PageId {
      *         ids are the same)
      */
     public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o instanceof HeapPageId == false) return false; 
         // TODO: some code goes here
+        HeapPageId hpId = (HeapPageId) o;
+        if (hpId.getPageNumber() == this.pgNo && hpId.getTableId() == this.tableId)
+            return true;
         return false;
     }
 
