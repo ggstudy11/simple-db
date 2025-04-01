@@ -1,7 +1,6 @@
 package simpledb.storage;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ public class Tuple implements Serializable {
      *           instance with at least one field.
      */
     public Tuple(TupleDesc td) {
-        // TODO: some code goes here
         this.td = td;
         fields = new ArrayList<>(this.td.numFields());
         for (int i = 0; i < td.numFields(); ++i) {
@@ -40,7 +38,6 @@ public class Tuple implements Serializable {
      * @return The TupleDesc representing the schema of this tuple.
      */
     public TupleDesc getTupleDesc() {
-        // TODO: some code goes here
         return td;
     }
 
@@ -49,7 +46,6 @@ public class Tuple implements Serializable {
      *         be null.
      */
     public RecordId getRecordId() {
-        // TODO: some code goes here
         return this.rid;
     }
 
@@ -59,7 +55,6 @@ public class Tuple implements Serializable {
      * @param rid the new RecordId for this tuple.
      */
     public void setRecordId(RecordId rid) {
-        // TODO: some code goes here
         this.rid = rid;
     }
 
@@ -70,7 +65,6 @@ public class Tuple implements Serializable {
      * @param f new value for the field.
      */
     public void setField(int i, Field f) {
-        // TODO: some code goes here
         fields.set(i, f);
     }
 
@@ -79,7 +73,6 @@ public class Tuple implements Serializable {
      * @return the value of the ith field, or null if it has not been set.
      */
     public Field getField(int i) {
-        // TODO: some code goes here
         return fields.get(i);
     }
 
@@ -92,7 +85,6 @@ public class Tuple implements Serializable {
      * where \t is any whitespace (except a newline)
      */
     public String toString() {
-        // TODO: some code goes here
         StringBuilder sb = new StringBuilder();
         for (Field f : fields) {
             sb.append(f.toString() + " ");
@@ -105,7 +97,6 @@ public class Tuple implements Serializable {
      * @return An iterator which iterates over all the fields of this tuple
      */
     public Iterator<Field> fields() {
-        // TODO: some code goes here
         return fields.iterator();
     }
 
@@ -113,7 +104,6 @@ public class Tuple implements Serializable {
      * reset the TupleDesc of this tuple (only affecting the TupleDesc)
      */
     public void resetTupleDesc(TupleDesc td) {
-        // TODO: some code goes here
         this.td = td;
     }
 }
