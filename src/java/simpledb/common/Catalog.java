@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -29,8 +28,7 @@ public class Catalog {
      * Creates a new, empty catalog.
      */
 
-
-    public static class Table {
+    private static class Table {
         public DbFile file;
         public String name;
         public String pkeyField;
@@ -43,11 +41,10 @@ public class Catalog {
 
     }
 
-    List<Table> tables;
+    Map<String, Table> tables;
 
     public Catalog() {
-        // TODO: some code goes here
-        tables = new ArrayList<>();
+        tables = new HashMap<>();
     }
 
     /**
@@ -61,11 +58,8 @@ public class Catalog {
      * @param pkeyField the name of the primary key field
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // TODO: some code goes here
         Table table = new Table(file, name, pkeyField);
-        tables.removeIf(t -> t.name.equals(name));
-        tables.removeIf(t -> t.file.getId() == file.getId());
-        tables.add(table);
+        tables.put(name, table);
     }
 
     public void addTable(DbFile file, String name) {
@@ -90,11 +84,8 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // TODO: some code goes here
-        for (Table table : tables) {
-            if (table.name.equals(name)) {
-                return table.file.getId();
-            }
+        if (tables.containsKey(name)) {
+            return tables.get(name).file.getId();
         }
         throw new NoSuchElementException("No such table");
     }
@@ -107,11 +98,9 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // TODO: some code goes here
-        for (Table table : tables) {
-            if (table.file.getId() == tableid) {
-                return table.file.getTupleDesc();
-            }
+        for (Map.Entry<String,Table> entry : tables.entrySet()) {
+            DbFile file = entry.getValue().file;
+            if (file.getId() == tableid) return file.getTupleDesc();
         }
         throw new NoSuchElementException("No such table");
     }
@@ -124,36 +113,29 @@ public class Catalog {
      *                function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // TODO: some code goes here
-        for (Table table : tables) {
-            if (table.file.getId() == tableid) {
-                return table.file;
-            }
+        for (Map.Entry<String,Table> entry : tables.entrySet()) {
+            DbFile file = entry.getValue().file;
+            if (file.getId() == tableid) return file;
         }
         throw new NoSuchElementException("No such table");
     }
 
     public String getPrimaryKey(int tableid) {
-        // TODO: some code goes here
-        for (Table table : tables) {
-            if (table.file.getId() == tableid) {
-                return table.pkeyField;
-            }
+        for (Map.Entry<String,Table> entry : tables.entrySet()) {
+            DbFile file = entry.getValue().file;
+            if (file.getId() == tableid) return entry.getValue().pkeyField;
         }
         return null;
     }
 
     public Iterator<Integer> tableIdIterator() {
-        // TODO: some code goes here
-        return tables.stream().map(tables -> tables.file.getId()).iterator();
+        return tables.values().stream().map(t -> t.file.getId()).iterator();
     }
 
     public String getTableName(int id) {
-        // TODO: some code goes here
-        for (Table table : tables) {
-            if (table.file.getId() == id) {
-                return table.name;
-            }
+        for (Map.Entry<String,Table> entry : tables.entrySet()) {
+            DbFile file = entry.getValue().file;
+            if (file.getId() == id) return entry.getKey();
         }
         return null;
     }
@@ -162,7 +144,6 @@ public class Catalog {
      * Delete all tables from the catalog
      */
     public void clear() {
-        // TODO: some code goes here
         tables.clear();
     }
 
@@ -179,14 +160,17 @@ public class Catalog {
 
             while ((line = br.readLine()) != null) {
                 //assume line is of the format name (field type, field type, ...)
-                String name = line.substring(0, line.indexOf("(")).trim();
+                // get Table name
+                String name = line.substring(0, line.indexOf("(")).trim(); 
                 //System.out.println("TABLE NAME: " + name);
                 String fields = line.substring(line.indexOf("(") + 1, line.indexOf(")")).trim();
+                // get All fields
                 String[] els = fields.split(",");
                 List<String> names = new ArrayList<>();
                 List<Type> types = new ArrayList<>();
                 String primaryKey = "";
                 for (String e : els) {
+                    // get One field fieldName fieldType or maybe additonal pk
                     String[] els2 = e.trim().split(" ");
                     names.add(els2[0].trim());
                     if (els2[1].trim().equalsIgnoreCase("int"))
@@ -206,6 +190,7 @@ public class Catalog {
                         }
                     }
                 }
+                // one bug here input is not ensure the pk is only one
                 Type[] typeAr = types.toArray(new Type[0]);
                 String[] namesAr = names.toArray(new String[0]);
                 TupleDesc t = new TupleDesc(typeAr, namesAr);
