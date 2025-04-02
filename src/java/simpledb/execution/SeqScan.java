@@ -27,7 +27,7 @@ public class SeqScan implements OpIterator {
     private int tableid;
     private String tableAlias;
     private DbFileIterator iterator;
-    private DbFile f;
+
     /**
      * Creates a sequential scan over the specified table as a part of the
      * specified transaction.
@@ -42,11 +42,9 @@ public class SeqScan implements OpIterator {
      *                   tableAlias.null, or null.null).
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
-        // TODO: some code goes here
         this.tid = tid;
         this.tableid = tableid;
         this.tableAlias = tableAlias;
-        f = Database.getCatalog().getDatabaseFile(tableid);
     }
 
     /**
@@ -61,7 +59,6 @@ public class SeqScan implements OpIterator {
      * @return Return the alias of the table this operator scans.
      */
     public String getAlias() {
-        // TODO: some code goes here
         return this.tableAlias;
     }
 
@@ -77,7 +74,6 @@ public class SeqScan implements OpIterator {
      *                   tableAlias.null, or null.null).
      */
     public void reset(int tableid, String tableAlias) {
-        // TODO: some code goes here
         this.tableid = tableid;
         this.tableAlias = tableAlias;
     }
@@ -87,8 +83,7 @@ public class SeqScan implements OpIterator {
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // TODO: some code goes here
-        iterator  = f.iterator(tid);
+        iterator  = Database.getCatalog().getDatabaseFile(tableid).iterator(tid);
         iterator.open();
     }
 
@@ -103,8 +98,7 @@ public class SeqScan implements OpIterator {
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        // TODO: some code goes here
-        TupleDesc td = f.getTupleDesc();
+        TupleDesc td = Database.getCatalog().getTupleDesc(tableid);
         Type[] typeAr = new Type[td.getTdItems().size()];
         String[] fieldAr = new String[td.getTdItems().size()];
         for (int i = 0; i < td.getTdItems().size(); ++i) {
@@ -115,24 +109,20 @@ public class SeqScan implements OpIterator {
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
-        // TODO: some code goes here
         return iterator.hasNext();
     }
 
     public Tuple next() throws NoSuchElementException,
             TransactionAbortedException, DbException {
-        // TODO: some code goes here
         return iterator.next();
     }
 
     public void close() {
-        // TODO: some code goes here
         iterator.close();
     }
 
     public void rewind() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // TODO: some code goes here
         iterator.rewind();
     }
 }
