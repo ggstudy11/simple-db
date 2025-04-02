@@ -30,12 +30,10 @@ public class Catalog {
 
     private static class Table {
         public DbFile file;
-        public String name;
         public String pkeyField;
 
-        public Table(DbFile file, String name, String pkeyField) {
+        public Table(DbFile file, String pkeyField) {
             this.file = file;
-            this.name = name;
             this.pkeyField = pkeyField;
         }
 
@@ -58,7 +56,7 @@ public class Catalog {
      * @param pkeyField the name of the primary key field
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        Table table = new Table(file, name, pkeyField);
+        Table table = new Table(file, pkeyField);
         tables.put(name, table);
     }
 

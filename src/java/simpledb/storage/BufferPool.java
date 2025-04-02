@@ -9,8 +9,6 @@ import simpledb.transaction.TransactionId;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -31,7 +29,7 @@ public class BufferPool {
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
 
-    private final ConcurrentHashMap<Integer, Page> pages;
+    final Map<PageId, Page> pages;
     /**
      * Default number of pages passed to the constructor. This is used by
      * other classes. BufferPool should use the numPages argument to the
@@ -46,8 +44,7 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // TODO: some code goes here
-        pages = new ConcurrentHashMap<>();
+        pages = new HashMap<>();
         this.numPages = numPages;
     }
 
@@ -82,19 +79,13 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
-        // TODO: some code goes here
         // hint: use DbFile.readPage() to access Page of a DbFile
-        if (!pages.containsKey(pid.getPageNumber())) {
-            // throw new DbException("Page not found in Buffer Pool!");
-            if (pages.size() == numPages) {
-                throw new DbException("BufferPool is not empty!");
-            }
-            DbFile f = Database.getCatalog().getDatabaseFile(pid.getTableId());
-            Page page = f.readPage(pid);
-            pages.put(pid.getPageNumber(), page);
-        }
-        Page page = pages.get(pid.getPageNumber());
-        return page;
+       if (!pages.containsKey(pid)) {
+            if (pages.size() == numPages) throw new DbException("Buffer Pool has not space!");
+            DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
+            pages.put(pid, file.readPage(pid));
+       }
+       return pages.get(pid);
     }
 
     /**
