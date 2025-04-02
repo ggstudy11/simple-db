@@ -106,7 +106,6 @@ public class HeapFile implements DbFile {
     public HeapFile(File f, TupleDesc td) {
         this.f = f;
         this.td = td;
-        // TODO: some code goes here
     }
 
     /**
@@ -115,7 +114,6 @@ public class HeapFile implements DbFile {
      * @return the File backing this HeapFile on disk.
      */
     public File getFile() {
-        // TODO: some code goes here
         return this.f;
     }
 
@@ -129,8 +127,6 @@ public class HeapFile implements DbFile {
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
-        // TODO: some code goes here
-        // throw new UnsupportedOperationException("implement this");
         return f.getAbsoluteFile().hashCode();
     }
 
@@ -140,16 +136,18 @@ public class HeapFile implements DbFile {
      * @return TupleDesc of this DbFile.
      */
     public TupleDesc getTupleDesc() {
-        // TODO: some code goes here
-        // throw new UnsupportedOperationException("implement this");
         return this.td;
     }
 
     // see DbFile.java for javadocs
     public Page readPage(PageId pid){
+        // 偏移量
         long offset = pid.getPageNumber() * BufferPool.getPageSize();
         byte[] data = new byte[BufferPool.getPageSize()];
-        HeapPage page = null;
+        Page page = null;
+        // Raf 随机访问文件
+        // Raf seek 跳过 offset字节数
+        // Raf read 读满 data数组
         try (RandomAccessFile raf = new RandomAccessFile(f, "r")){
             raf.seek(offset);
             raf.read(data);
@@ -158,7 +156,6 @@ public class HeapFile implements DbFile {
             
         }
         return page;
-        // TODO: some code goes here
     }
 
     // see DbFile.java for javadocs
