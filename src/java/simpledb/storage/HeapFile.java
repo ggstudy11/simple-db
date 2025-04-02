@@ -32,69 +32,51 @@ public class HeapFile implements DbFile {
     private class HeapFileIterator implements DbFileIterator {
 
         private final TransactionId tid;
-        private int nextPgNo;
-        private HeapPageId pid;
+        private int pgNo = 0;
+        private HeapPageId pid = new HeapPageId(getId(), pgNo);
         private Iterator<Tuple> iterator;
-        private Tuple next = null;
+        private boolean flag = false;
 
         public HeapFileIterator(TransactionId tid) {
             this.tid = tid;
-            this.nextPgNo = 0;
-            this.pid = new HeapPageId(getId(), nextPgNo);
         }
         
         @Override
         public boolean hasNext() throws DbException, TransactionAbortedException {
-            if (next == null) next = readNext();
-            return next != null;
+            if (!flag) return false;
+            if (iterator.hasNext()) return true;
+            if (pgNo < numPages() - 1) {
+                pid = new HeapPageId(getId(), ++pgNo);
+                iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
+            }
+            return iterator.hasNext();
         }
 
         @Override
         public Tuple next() throws DbException, TransactionAbortedException,
                 NoSuchElementException {
-            if (next == null) {
-                next = readNext();
-                if (next == null) throw new NoSuchElementException();
-            }
-
-            Tuple result = next;
-            next = null;
-            return result;
-        }
-
-        private Tuple readNext() throws DbException, TransactionAbortedException{
-            if (iterator == null) return null;
-            if (iterator.hasNext()) 
+            if (hasNext()) {
                 return iterator.next();
-            else {
-                nextPgNo++;
-                if (nextPgNo == numPages()) {
-                    return null;
-                }
-                this.pid = new HeapPageId(getId(), nextPgNo);
-                this.iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
-                if (iterator.hasNext()) return iterator.next();
-                return null;
             }
-            
+            throw new NoSuchElementException("no valid element!");
         }
 
         @Override
         public void open() throws DbException, TransactionAbortedException {
-            this.iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
+            flag = true;
+            iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
         }
 
         @Override
         public void rewind() throws DbException, TransactionAbortedException {
-            this.nextPgNo = 0;
-            this.pid = new HeapPageId(getId(), nextPgNo);
-            this.iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
+            pgNo = 0;
+            pid = new HeapPageId(getId(), pgNo);
+            iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
         }
 
         @Override
         public void close() {
-            next = null;
-            iterator = null;
+            flag = false;
         }
     }
     /**
