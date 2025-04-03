@@ -100,7 +100,10 @@ java.util.NoSuchElementException
 org.junit.Assert
 simpledb.execution.Predicate$Op
 ||:simpledb.execution.Predicate
+simpledb.storage.Tuple
+java.lang.StringBuilder
 java.lang.Object
+simpledb.storage.Field
 simpledb.execution.Predicate$Op
 simpledb.execution.Predicate
 java.io.Serializable
@@ -1454,8 +1457,10 @@ simpledb.execution.SeqScan
 [Lsimpledb.common.Type;
 ||:simpledb.PredicateTest
 simpledb.systemtest.SimpleDbTestBase
+java.io.PrintStream
 simpledb.TestUtil
 simpledb.PredicateTest
+java.lang.System
 junit.framework.JUnit4TestAdapter
 org.junit.Assert
 simpledb.execution.Predicate$Op
