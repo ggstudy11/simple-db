@@ -1578,10 +1578,12 @@ simpledb.execution.IndexPredicate
 simpledb.index.BTreeUtility$BTreeWriter
 ||:simpledb.execution.Filter
 simpledb.common.DbException
+simpledb.execution.OpIterator
 simpledb.execution.Operator
 java.util.NoSuchElementException
 simpledb.execution.Filter
 simpledb.transaction.TransactionAbortedException
+simpledb.execution.Predicate
 ||:simpledb.index.BTreeInternalPageIterator
 java.lang.UnsupportedOperationException
 java.util.Iterator
@@ -2571,8 +2573,10 @@ simpledb.IntegerAggregatorTest
 java.util.NoSuchElementException
 org.junit.Assert
 ||:simpledb.execution.JoinPredicate
+simpledb.storage.Tuple
 java.lang.Object
 simpledb.execution.JoinPredicate
+simpledb.storage.Field
 simpledb.execution.Predicate$Op
 java.io.Serializable
 simpledb.execution.Predicate
