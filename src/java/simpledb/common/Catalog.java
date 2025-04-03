@@ -57,6 +57,11 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         Table table = new Table(file, pkeyField);
+        // if catalog finds two name ref to one file, delete the old one
+        if (getTableName(file.getId()) != null) {
+            String tablename = getTableName(file.getId());
+            tables.remove(tablename);
+        }
         tables.put(name, table);
     }
 
