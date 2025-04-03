@@ -1,5 +1,6 @@
 package simpledb.execution;
 
+import simpledb.common.Database;
 import simpledb.common.DbException;
 import simpledb.storage.Tuple;
 import simpledb.storage.TupleDesc;
@@ -22,13 +23,20 @@ public class Join extends Operator {
      * @param child1 Iterator for the left(outer) relation to join
      * @param child2 Iterator for the right(inner) relation to join
      */
+    private final JoinPredicate p;
+    private final OpIterator child1;
+    private final OpIterator child2;
+    private OpIterator[] children;
+    private Tuple t1;
+
     public Join(JoinPredicate p, OpIterator child1, OpIterator child2) {
-        // TODO: some code goes here
+        this.p = p;
+        this.child1 = child1;
+        this.child2 = child2;
     }
 
     public JoinPredicate getJoinPredicate() {
-        // TODO: some code goes here
-        return null;
+        return p;
     }
 
     /**
@@ -36,8 +44,11 @@ public class Join extends Operator {
      *         alias or table name.
      */
     public String getJoinField1Name() {
-        // TODO: some code goes here
-        return null;
+        TupleDesc td = child1.getTupleDesc();
+        StringBuilder sb = new StringBuilder();
+        sb.append("1.");
+        sb.append(td.getFieldName(p.getField1()));
+        return sb.toString();
     }
 
     /**
@@ -45,8 +56,11 @@ public class Join extends Operator {
      *         alias or table name.
      */
     public String getJoinField2Name() {
-        // TODO: some code goes here
-        return null;
+        TupleDesc td = child2.getTupleDesc();
+        StringBuilder sb = new StringBuilder();
+        sb.append("2.");
+        sb.append(td.getFieldName(p.getField2()));
+        return sb.toString();
     }
 
     /**
@@ -54,21 +68,25 @@ public class Join extends Operator {
      *         implementation logic.
      */
     public TupleDesc getTupleDesc() {
-        // TODO: some code goes here
-        return null;
+        return TupleDesc.merge(child1.getTupleDesc(), child2.getTupleDesc());
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // TODO: some code goes here
+        super.open();
+        child1.open();
+        child2.open();
     }
 
     public void close() {
-        // TODO: some code goes here
+        super.close();
+        child1.close();
+        child2.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // TODO: some code goes here
+        child1.rewind();
+        child2.rewind();
     }
 
     /**
@@ -90,19 +108,41 @@ public class Join extends Operator {
      * @see JoinPredicate#filter
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // TODO: some code goes here
+        while (child1.hasNext() || t1 != null) {
+            if (t1 == null) {
+                t1 = child1.next();
+            }
+            while (child2.hasNext()) {
+                Tuple t2 = child2.next();
+                if (p.filter(t1, t2)) {
+                    TupleDesc td = getTupleDesc();
+                    Tuple tuple = new Tuple(td);
+                    int len1 = child1.getTupleDesc().numFields();
+                    int len2 = child2.getTupleDesc().numFields();
+                    for (int i = 0; i < len1; ++i) {
+                        tuple.setField(i, t1.getField(i));
+                    }
+                    for (int i = len1; i < len1 + len2; ++i) {
+                        tuple.setField(i, t2.getField(i - len1));
+                    }
+                    return tuple;
+                }
+            }
+            // 当 child2 遍历完后，重置 child2 并将 currentT1 置为 null，以便获取 child1 的下一个元组
+            child2.rewind();
+            t1 = null;
+        }
         return null;
     }
 
     @Override
     public OpIterator[] getChildren() {
-        // TODO: some code goes here
-        return null;
+        return children;    
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
-        // TODO: some code goes here
+        this.children = children;
     }
 
 }

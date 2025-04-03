@@ -2216,10 +2216,15 @@ simpledb.systemtest.TransactionTestOne
 simpledb.transaction.TransactionAbortedException
 ||:simpledb.execution.Join
 simpledb.common.DbException
+simpledb.execution.OpIterator
+simpledb.storage.Tuple
+java.lang.StringBuilder
 simpledb.execution.Operator
 java.util.NoSuchElementException
+simpledb.execution.JoinPredicate
 simpledb.execution.Join
 simpledb.transaction.TransactionAbortedException
+simpledb.storage.TupleDesc
 ||:simpledb.SimpleDb
 java.lang.System
 java.lang.Integer
