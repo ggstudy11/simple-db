@@ -85,6 +85,7 @@ public class Join extends Operator {
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
+        t1 = null;
         child1.rewind();
         child2.rewind();
     }
@@ -108,7 +109,7 @@ public class Join extends Operator {
      * @see JoinPredicate#filter
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        while (child1.hasNext() || t1 != null) {
+        while ((child1.hasNext() || t1 != null) && child2.hasNext()) {
             if (t1 == null) {
                 t1 = child1.next();
             }
@@ -128,7 +129,6 @@ public class Join extends Operator {
                     return tuple;
                 }
             }
-            // 当 child2 遍历完后，重置 child2 并将 currentT1 置为 null，以便获取 child1 的下一个元组
             child2.rewind();
             t1 = null;
         }
