@@ -1,7 +1,15 @@
 package simpledb.execution;
 
 import simpledb.common.Type;
+import simpledb.storage.Field;
 import simpledb.storage.Tuple;
+import simpledb.storage.TupleDesc;
+import simpledb.storage.TupleIterator;
+import simpledb.utils.AggUtil;
+import simpledb.utils.IntAggUtil;
+
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Knows how to compute some aggregate over a set of IntFields.
@@ -20,9 +28,18 @@ public class IntegerAggregator implements Aggregator {
      * @param afield      the 0-based index of the aggregate field in the tuple
      * @param what        the aggregation operator
      */
-
+    private final int gbfield;
+    private final Type gbfieldType;
+    private final int afield;
+    private final Op what;
+    private Map<Field, int[]> groups = new HashMap<>();
+    private AggUtil aggUtil;
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
-        // TODO: some code goes here
+        this.gbfield = gbfield;
+        this.gbfieldType = gbfieldtype;
+        this.afield = afield;
+        this.what = what;
+        aggUtil = new IntAggUtil(groups, gbfield, gbfieldtype, afield, what);
     }
 
     /**
@@ -32,7 +49,7 @@ public class IntegerAggregator implements Aggregator {
      * @param tup the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        // TODO: some code goes here
+       aggUtil.operate(tup);
     }
 
     /**
@@ -44,9 +61,7 @@ public class IntegerAggregator implements Aggregator {
      *         the constructor.
      */
     public OpIterator iterator() {
-        // TODO: some code goes here
-        throw new
-        UnsupportedOperationException("please implement me for lab2");
+        return new TupleIterator(aggUtil.getTupleDesc(), aggUtil.getTuples());
     }
 
 }

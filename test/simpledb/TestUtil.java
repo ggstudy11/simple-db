@@ -94,9 +94,9 @@ public class TestUtil {
             return false;
 
         for (int i = 0; i < t1.getTupleDesc().numFields(); ++i) {
-            if (!(t1.getTupleDesc().getFieldType(i).equals(t2.getTupleDesc().getFieldType(i))))
+            if (!(t1.getTupleDesc().getFieldType(i).equals(t2.getTupleDesc().getFieldType(i)))) 
                 return false;
-            if (!(t1.getField(i).equals(t2.getField(i))))
+            if (!(t1.getField(i).equals(t2.getField(i)))) 
                 return false;
         }
 
