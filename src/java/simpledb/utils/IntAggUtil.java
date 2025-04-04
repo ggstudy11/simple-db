@@ -123,10 +123,11 @@ public class IntAggUtil implements AggUtil{
             val = groups.get(tup.getField(gbfield));
         }
         if (val == null) {
-            val = new int[2];
+            val = new int[3];
         }
-        val[0] = (val[1] * val[0] + ((IntField) tup.getField(afield)).getValue()) / (val[1] + 1);
-        val[1]++;
+        val[1] += ((IntField) tup.getField(afield)).getValue();
+        val[2] += 1;
+        val[0] = val[1] / val[2];
         groups.put(gbfieldType == null ? PRESENT : tup.getField(gbfield), val);
     }
 

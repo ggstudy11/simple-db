@@ -41,7 +41,7 @@ public class StringAggUtil implements AggUtil{
         }
         if (what == Op.COUNT) {
             count(tup);
-        }
+        } 
     }
     
     private void count(Tuple tup) {

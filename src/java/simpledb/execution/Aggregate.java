@@ -43,7 +43,7 @@ public class Aggregate extends Operator {
         this.afield = afield;
         this.gfield = gfield;
         this.aop = aop;
-        Type gbfieldType = gfield == Aggregator.NO_GROUPING ? null : child.getTupleDesc().getFieldType(afield);
+        Type gbfieldType = gfield == Aggregator.NO_GROUPING ? null : child.getTupleDesc().getFieldType(gfield);
         if (child.getTupleDesc().getFieldType(afield) == Type.INT_TYPE) {
             aggregator = new IntegerAggregator(gfield, gbfieldType, afield, aop);
         } else {
@@ -185,8 +185,7 @@ public class Aggregate extends Operator {
         child.open();
         while (child.hasNext()) {
             Tuple tuple = child.next();
-            System.out.println(tuple);
-            // aggregator.mergeTupleIntoGroup(tuple);
+            aggregator.mergeTupleIntoGroup(tuple);
         }
         child.close();
     }

@@ -584,6 +584,7 @@ simpledb.storage.IntField
 java.util.Set
 simpledb.storage.Field
 simpledb.storage.TupleDesc
+java.lang.Integer
 [I
 java.util.ArrayList
 simpledb.utils.IntAggUtil$1
