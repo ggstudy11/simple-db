@@ -183,6 +183,7 @@ simpledb.storage.Page
 simpledb.storage.BufferPool
 java.io.ByteArrayInputStream
 java.io.DataOutputStream
+simpledb.transaction.TransactionId
 simpledb.common.Database
 java.lang.Math
 java.util.NoSuchElementException
@@ -300,7 +301,6 @@ java.io.Serializable
 ||:simpledb.storage.HeapPage$1
 java.lang.UnsupportedOperationException
 java.util.Iterator
-simpledb.storage.Tuple
 simpledb.storage.HeapPage$1
 java.lang.Object
 simpledb.storage.HeapPage
@@ -923,14 +923,20 @@ java.io.RandomAccessFile
 simpledb.storage.PageId
 simpledb.common.DbException
 [B
+simpledb.storage.Tuple
 java.io.IOException
 simpledb.storage.Page
 java.io.File
+java.util.ArrayList
 simpledb.storage.BufferPool
 simpledb.storage.HeapFile$HeapFileIterator
+java.util.List
 simpledb.storage.DbFile
 simpledb.storage.HeapPageId
 simpledb.storage.HeapFile
+simpledb.storage.RecordId
+simpledb.common.Database
+simpledb.common.Permissions
 java.lang.Object
 simpledb.transaction.TransactionAbortedException
 simpledb.storage.HeapPage
