@@ -175,7 +175,7 @@ public class HeapFile implements DbFile {
         try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f, true))) {
             byte[] emty = HeapPage.createEmptyPageData();
             bos.write(emty);
-        } 
+        }
         HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(getId(), numPages() - 1), Permissions.READ_WRITE);
         page.insertTuple(t);
         l.add(page);
@@ -186,9 +186,7 @@ public class HeapFile implements DbFile {
     public List<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
         HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
-        // delete
         page.deleteTuple(t);
-        // to find the pages ? maybe something wrong
         List<Page> l = new ArrayList<>();
         l.add(page);
         return l;
