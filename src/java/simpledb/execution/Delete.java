@@ -27,25 +27,31 @@ public class Delete extends Operator {
      * @param t     The transaction this delete runs in
      * @param child The child operator from which to read tuples for deletion
      */
+    private final TransactionId tid;
+    private final OpIterator child;
+    private boolean operate = false;
+
     public Delete(TransactionId t, OpIterator child) {
-        // TODO: some code goes here
+        this.tid = t;
+        this.child = child;
     }
 
     public TupleDesc getTupleDesc() {
-        // TODO: some code goes here
-        return null;
+        return new TupleDesc(new Type[]{Type.INT_TYPE}, new String[]{"effected num"});
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // TODO: some code goes here
+        super.open();
+        child.open();
     }
 
     public void close() {
-        // TODO: some code goes here
+        super.close();
+        child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // TODO: some code goes here
+        child.rewind();
     }
 
     /**
@@ -58,8 +64,20 @@ public class Delete extends Operator {
      * @see BufferPool#deleteTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // TODO: some code goes here
-        return null;
+        if (operate) return null;
+        operate = true;
+        Tuple tup = new Tuple(getTupleDesc());
+        int effected_num = 0;
+        while (child.hasNext()) {
+            try {
+                Database.getBufferPool().deleteTuple(tid, child.next());
+                effected_num++;
+            } catch (IOException e) {
+                System.out.println("error msg: " + e);
+            }
+        }
+        tup.setField(0, new IntField(effected_num));
+        return tup;
     }
 
     @Override

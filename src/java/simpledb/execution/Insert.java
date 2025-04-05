@@ -33,6 +33,7 @@ public class Insert extends Operator {
     private final OpIterator child;
     private final int tabledId;
     private OpIterator[] children;
+    private boolean operate = false;
 
     public Insert(TransactionId t, OpIterator child, int tableId)
             throws DbException {
@@ -73,7 +74,8 @@ public class Insert extends Operator {
      * @see BufferPool#insertTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        if (!child.hasNext()) return null;
+        if (operate) return null;
+        operate = true;
         Tuple tup = new Tuple(getTupleDesc());
         int effected_num = 0;
         while (child.hasNext()) {
