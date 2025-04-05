@@ -29,7 +29,25 @@ public class BufferPool {
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
 
-    final Map<PageId, Page> pages;
+    final LRUCache<PageId, Page> pages;
+
+    public class LRUCache<K, V> extends LinkedHashMap<K, V> {
+        private final int capacity;
+
+        // 构造函数，初始化缓存容量
+        public LRUCache(int capacity) {
+            // 调用父类构造函数，设置初始容量、负载因子和访问顺序
+            super(capacity, 0.75f, true);
+            this.capacity = capacity;
+        }
+
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            // 当缓存大小超过容量时，移除最旧的元素
+            return size() > capacity;
+        }
+    }
     /**
      * Default number of pages passed to the constructor. This is used by
      * other classes. BufferPool should use the numPages argument to the
@@ -44,7 +62,7 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        pages = new HashMap<>();
+        pages = new LRUCache<>(numPages);
         this.numPages = numPages;
     }
 
@@ -81,7 +99,6 @@ public class BufferPool {
             throws TransactionAbortedException, DbException {
         // hint: use DbFile.readPage() to access Page of a DbFile
        if (!pages.containsKey(pid)) {
-            if (pages.size() == numPages) throw new DbException("Buffer Pool has not space!");
             DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
             pages.put(pid, file.readPage(pid));
        }
@@ -187,9 +204,13 @@ public class BufferPool {
      * break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-        // TODO: some code goes here
-        // not necessary for lab1
-
+        for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
+            Page page = entry.getValue();
+            if (page.isDirty() != null) {
+                DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+                file.writePage(page);
+            }
+        }
     }
 
     /**
@@ -202,8 +223,7 @@ public class BufferPool {
      * are removed from the cache so they can be reused safely
      */
     public synchronized void removePage(PageId pid) {
-        // TODO: some code goes here
-        // not necessary for lab1
+        pages.remove(pid);
     }
 
     /**
@@ -212,16 +232,22 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized void flushPage(PageId pid) throws IOException {
-        // TODO: some code goes here
-        // not necessary for lab1
+        Page page = pages.get(pid);
+        DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+        file.writePage(page);
     }
 
     /**
      * Write all pages of the specified transaction to disk.
      */
     public synchronized void flushPages(TransactionId tid) throws IOException {
-        // TODO: some code goes here
-        // not necessary for lab1|lab2
+        for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
+            Page page = entry.getValue();
+            if (page.isDirty() == tid) {
+                DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+                file.writePage(page);
+            }
+        }
     }
 
     /**
@@ -229,8 +255,7 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized void evictPage() throws DbException {
-        // TODO: some code goes here
-        // not necessary for lab1
+        // not code here 
     }
 
 }
