@@ -343,11 +343,12 @@ public class HeapPage implements Page {
             public boolean hasNext() {
                 if (index + 1 == numSlots)
                     return false;
-                int idx = index;
-                while (idx + 1 < numSlots) {
-                    if (isSlotUsed(++idx)) {
+                while (index + 1 < numSlots) {
+                    int idx = index + 1;
+                    if (isSlotUsed(idx)) {
                         return true;
                     }
+                    index++;
                 }
                 return false;
             }
@@ -355,8 +356,7 @@ public class HeapPage implements Page {
             @Override
             public Tuple next() {
                if (!hasNext()) return null;
-               while (!isSlotUsed(++index)){}
-               return tuples[index];
+               return tuples[++index];
             }
 
             @Override

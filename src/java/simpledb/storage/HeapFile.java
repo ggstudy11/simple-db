@@ -44,11 +44,13 @@ public class HeapFile implements DbFile {
         public boolean hasNext() throws DbException, TransactionAbortedException {
             if (!flag) return false;
             if (iterator.hasNext()) return true;
-            if (pgNo < numPages() - 1) {
+            while (pgNo < numPages() - 1) {
                 pid = new HeapPageId(getId(), ++pgNo);
                 iterator = ((HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY)).iterator();
+                if (iterator.hasNext())
+                    return true;
             }
-            return iterator.hasNext();
+            return false;
         }
 
         @Override
@@ -141,8 +143,12 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
-        // TODO: some code goes here
-        // not necessary for lab1
+        try (RandomAccessFile raf = new RandomAccessFile(f, "rw")) {
+            long offset = page.getId().getPageNumber() * BufferPool.getPageSize();
+            byte[] data = page.getPageData();
+            raf.seek(offset);
+            raf.write(data);
+        }
     }
 
     /**
@@ -155,12 +161,23 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public List<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // from bufferpool to getPage
-        HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
-        // insert
-        page.insertTuple(t);
-        // to find the pages ? maybe something wrong
         List<Page> l = new ArrayList<>();
+        for (int i = 0; i < numPages(); ++i) {
+            PageId pid = new HeapPageId(this.getId(), i);
+            HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+            if (page.getNumUnusedSlots() == 0)
+                continue;
+            page.insertTuple(t);
+            l.add(page);
+            return l;
+        }
+        // 如果找不到空闲页则新建 append写入
+        try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f, true))) {
+            byte[] emty = HeapPage.createEmptyPageData();
+            bos.write(emty);
+        } 
+        HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(getId(), numPages() - 1), Permissions.READ_WRITE);
+        page.insertTuple(t);
         l.add(page);
         return l;
     }
