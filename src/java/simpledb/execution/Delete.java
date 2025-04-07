@@ -28,7 +28,7 @@ public class Delete extends Operator {
      * @param child The child operator from which to read tuples for deletion
      */
     private final TransactionId tid;
-    private final OpIterator child;
+    private OpIterator child;
     private boolean operate = false;
 
     public Delete(TransactionId t, OpIterator child) {
@@ -82,13 +82,12 @@ public class Delete extends Operator {
 
     @Override
     public OpIterator[] getChildren() {
-        // TODO: some code goes here
-        return null;
+        return new OpIterator[]{child};
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
-        // TODO: some code goes here
+        child = children[0];
     }
 
 }

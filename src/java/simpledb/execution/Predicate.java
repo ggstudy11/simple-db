@@ -103,10 +103,8 @@ public class Predicate implements Serializable {
      * operand_string"
      */
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("f = " + field);
-        sb.append(" op = " + op.toString());
-        sb.append(" operand = " + operand.toString());
-        return sb.toString();
+        return "f = " + field +
+                " op = " + op.toString() +
+                " operand = " + operand.toString();
     }
 }

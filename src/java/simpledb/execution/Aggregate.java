@@ -31,13 +31,12 @@ public class Aggregate extends Operator {
      *               there is no grouping
      * @param aop    The aggregation operator to use
      */
-    private final OpIterator child;
+    private OpIterator child;
     private final int afield;
     private final int gfield;
     private final Aggregator.Op aop;
-    private OpIterator[] children;
-    private Aggregator aggregator;
-    private OpIterator iterator;
+    private final Aggregator aggregator;
+    private final OpIterator iterator;
     public Aggregate(OpIterator child, int afield, int gfield, Aggregator.Op aop) {
         this.child = child;
         this.afield = afield;
@@ -116,17 +115,7 @@ public class Aggregate extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         if (iterator.hasNext()) {
-            Tuple t = iterator.next();
-            return t;
-            // TupleDesc tupleDesc = getTupleDesc();
-            // Tuple t2 = new Tuple(tupleDesc);
-            // if (gfield != Aggregator.NO_GROUPING) {
-            //     t2.setField(1, t.getField(afield));
-            //     t2.setField(0, t.getField(gfield));
-            // } else {
-            //     t2.setField(0, t.getField(gfield));
-            // }
-            // return t2;
+            return iterator.next();
         }
         return null;
     }
@@ -173,12 +162,12 @@ public class Aggregate extends Operator {
 
     @Override
     public OpIterator[] getChildren() {
-        return children;
+        return new OpIterator[]{child};
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
-        this.children = children;
+        child = children[0];
     }
 
     private void aggregate() throws DbException, TransactionAbortedException{
