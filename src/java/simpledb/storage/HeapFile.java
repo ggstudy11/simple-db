@@ -173,8 +173,8 @@ public class HeapFile implements DbFile {
         }
         // 如果找不到空闲页则新建 append写入
         try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f, true))) {
-            byte[] emty = HeapPage.createEmptyPageData();
-            bos.write(emty);
+            byte[] empty = HeapPage.createEmptyPageData();
+            bos.write(empty);
         }
         HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, new HeapPageId(getId(), numPages() - 1), Permissions.READ_WRITE);
         page.insertTuple(t);
