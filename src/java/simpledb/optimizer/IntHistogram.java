@@ -23,8 +23,19 @@ public class IntHistogram {
      * @param min     The minimum integer value that will ever be passed to this class for histogramming
      * @param max     The maximum integer value that will ever be passed to this class for histogramming
      */
+    private final int min;
+    private final int max;
+    private final int gap;
+    private final int[] buckets;
+    private int total;
+    public final static double ALL = 100.0;
+    public final static double NULL = 0.0;
     public IntHistogram(int buckets, int min, int max) {
-        // TODO: some code goes here
+        this.min = min;
+        this.max = max;
+        this.gap = (int)Math.ceil((max - min) * 1.0 / buckets);
+        this.buckets = new int[buckets];
+        total = 0;
     }
 
     /**
@@ -33,7 +44,10 @@ public class IntHistogram {
      * @param v Value to add to the histogram
      */
     public void addValue(int v) {
-        // TODO: some code goes here
+        // 如果在边界都算右边的桶
+        int index = Math.min((v - min) / gap, buckets.length - 1);
+        buckets[index]++;
+        total++;
     }
 
     /**
@@ -47,8 +61,55 @@ public class IntHistogram {
      * @return Predicted selectivity of this particular operator and value
      */
     public double estimateSelectivity(Predicate.Op op, int v) {
-
-        // TODO: some code goes here
+        if (v > max || v < min) {
+            if (op.equals(Predicate.Op.EQUALS)) return NULL;
+            if (op.equals(Predicate.Op.NOT_EQUALS)) return ALL;
+            boolean less = op.equals(Predicate.Op.LESS_THAN_OR_EQ) || op.equals(Predicate.Op.LESS_THAN);
+            boolean greater = op.equals(Predicate.Op.GREATER_THAN) || op.equals(Predicate.Op.GREATER_THAN_OR_EQ);
+            if (v > max){
+                if (less) return ALL;
+                if (greater) return NULL;
+            } else {
+                if (less) return NULL;
+                if (greater) return ALL;
+            }
+        }
+        int index = Math.min((v - min) / gap, buckets.length - 1);
+        double ratio = buckets[index] * 1.0 / (gap * total);
+        if (op.equals(Predicate.Op.EQUALS)) {
+            return ratio;
+        }
+        if (op.equals(Predicate.Op.NOT_EQUALS)) {
+            return 1 - ratio;
+        }
+        if (op.equals(Predicate.Op.GREATER_THAN)) {
+            double contributeRatio = ratio * ((index + 1) * gap + min - v);
+            for (int i = index + 1; i < buckets.length; ++i) {
+                contributeRatio += buckets[i] * 1.0 / total;
+            }
+            return contributeRatio;
+        }
+        if (op.equals(Predicate.Op.LESS_THAN)) {
+            double contributeRatio = ratio * (v - (index * gap + min));
+            for (int i = index - 1; i >= 0; --i) {
+                contributeRatio += buckets[i] * 1.0 / total;
+            }
+            return contributeRatio;
+        }
+        if(op.equals(Predicate.Op.GREATER_THAN_OR_EQ)) {
+            double contributeRatio = ratio * ((index + 1) * gap + min - v);
+            for (int i = index + 1; i < buckets.length; ++i) {
+                contributeRatio += buckets[i] * 1.0 / total;
+            }
+            return contributeRatio + ratio;
+        }
+        if (op.equals(Predicate.Op.LESS_THAN_OR_EQ)) {
+            double contributeRatio = ratio * (v - (index * gap + min));
+            for (int i = index - 1; i >= 0; --i) {
+                contributeRatio += buckets[i] * 1.0 / total;
+            }
+            return contributeRatio + ratio;
+        }
         return -1.0;
     }
 
