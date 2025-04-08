@@ -3,7 +3,6 @@ package simpledb.optimizer;
 import simpledb.ParsingException;
 import simpledb.common.Database;
 import simpledb.execution.*;
-import simpledb.storage.TupleDesc;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -200,10 +199,23 @@ public class JoinOptimizer {
             Map<String, TableStats> stats,
             Map<String, Double> filterSelectivities, boolean explain)
             throws ParsingException {
-        // Not necessary for labs 1 and 2.
-
-        // TODO: some code goes here
-        return joins;
+        PlanCache planCache = new PlanCache();
+        Set<LogicalJoinNode> joinsSet = new HashSet<>(joins);
+        for (int i = 1; i <= joins.size(); ++i) {
+            for (Set<LogicalJoinNode> s : enumerateSubsets(joins, i)) {
+                CostCard bestCostCard = new CostCard();
+                double bestCostSoFar = Double.MAX_VALUE;
+                for (LogicalJoinNode joinToRemove : s) {
+                    CostCard costCard = computeCostAndCardOfSubplan(stats, filterSelectivities, joinToRemove, s, bestCostSoFar, planCache);
+                    if (costCard != null) {
+                        bestCostSoFar = Math.min(bestCostSoFar, costCard.cost);
+                        bestCostCard = costCard;
+                    }
+                }
+                planCache.addPlan(s, bestCostCard.cost,bestCostCard.card,bestCostCard.plan);
+            }
+        }
+        return planCache.getOrder(joinsSet);
     }
 
     // ===================== Private Methods =================================
