@@ -28,12 +28,12 @@ public class IntHistogram {
     private final int gap;
     private final int[] buckets;
     private int total;
-    public final static double ALL = 100.0;
+    public final static double ALL = 1.0;
     public final static double NULL = 0.0;
     public IntHistogram(int buckets, int min, int max) {
         this.min = min;
         this.max = max;
-        this.gap = (int)Math.ceil((max - min) * 1.0 / buckets);
+        this.gap = Math.max(1, (max - min) / buckets);
         this.buckets = new int[buckets];
         total = 0;
     }
@@ -101,14 +101,14 @@ public class IntHistogram {
             for (int i = index + 1; i < buckets.length; ++i) {
                 contributeRatio += buckets[i] * 1.0 / total;
             }
-            return contributeRatio + ratio;
+            return contributeRatio;
         }
         if (op.equals(Predicate.Op.LESS_THAN_OR_EQ)) {
             double contributeRatio = ratio * (v - (index * gap + min));
             for (int i = index - 1; i >= 0; --i) {
                 contributeRatio += buckets[i] * 1.0 / total;
             }
-            return contributeRatio + ratio;
+            return contributeRatio;
         }
         return -1.0;
     }
@@ -121,8 +121,12 @@ public class IntHistogram {
      *         implement a more efficient optimization
      */
     public double avgSelectivity() {
-        // TODO: some code goes here
-        return 1.0;
+        // 计算bucket的平均选中率
+        double avg = 0;
+        for (int bucket : buckets) {
+            avg += bucket * 1.0 / total;
+        }
+        return avg / buckets.length;
     }
 
     /**
