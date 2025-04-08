@@ -82,35 +82,19 @@ public class IntHistogram {
         if (op.equals(Predicate.Op.NOT_EQUALS)) {
             return 1 - ratio;
         }
-        if (op.equals(Predicate.Op.GREATER_THAN)) {
+        if (op.equals(Predicate.Op.GREATER_THAN) || op.equals(Predicate.Op.GREATER_THAN_OR_EQ)) {
             double contributeRatio = ratio * ((index + 1) * gap + min - v);
             for (int i = index + 1; i < buckets.length; ++i) {
                 contributeRatio += buckets[i] * 1.0 / total;
             }
             return contributeRatio;
         }
-        if (op.equals(Predicate.Op.LESS_THAN)) {
-            double contributeRatio = ratio * (v - (index * gap + min));
-            for (int i = index - 1; i >= 0; --i) {
-                contributeRatio += buckets[i] * 1.0 / total;
-            }
-            return contributeRatio;
+        // less than equal || less than
+        double contributeRatio = ratio * (v - (index * gap + min));
+        for (int i = index - 1; i >= 0; --i) {
+            contributeRatio += buckets[i] * 1.0 / total;
         }
-        if(op.equals(Predicate.Op.GREATER_THAN_OR_EQ)) {
-            double contributeRatio = ratio * ((index + 1) * gap + min - v);
-            for (int i = index + 1; i < buckets.length; ++i) {
-                contributeRatio += buckets[i] * 1.0 / total;
-            }
-            return contributeRatio;
-        }
-        if (op.equals(Predicate.Op.LESS_THAN_OR_EQ)) {
-            double contributeRatio = ratio * (v - (index * gap + min));
-            for (int i = index - 1; i >= 0; --i) {
-                contributeRatio += buckets[i] * 1.0 / total;
-            }
-            return contributeRatio;
-        }
-        return -1.0;
+        return contributeRatio;
     }
 
     /**
