@@ -4,9 +4,7 @@ import simpledb.common.Database;
 import simpledb.common.DbException;
 import simpledb.common.Type;
 import simpledb.execution.Predicate;
-import simpledb.execution.SeqScan;
 import simpledb.storage.*;
-import simpledb.transaction.Transaction;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
@@ -73,7 +71,7 @@ public class TableStats {
 
     private final int tableid;
     private final int ioCostPerPage;
-    private final Map<String, IntHistogram> intHistrograms;
+    private final Map<String, IntHistogram> intHistograms;
     private final Map<String, StringHistogram> stringHistograms;
     private int numTuple;
     /**
@@ -85,18 +83,11 @@ public class TableStats {
      *                      sequential-scan IO and disk seeks.
      */
     public TableStats(int tableid, int ioCostPerPage) {
-        // For this function, you'll have to get the
-        // DbFile for the table in question,
-        // then scan through its tuples and calculate
-        // the values that you need.
-        // You should try to do this reasonably efficiently, but you don't
-        // necessarily have to (for example) do everything
-        // in a single scan of the table.
         DbFile f = Database.getCatalog().getDatabaseFile(tableid);
         DbFileIterator iterator = f.iterator(new TransactionId());
         TupleDesc tupleDesc = f.getTupleDesc();
         this.tableid = tableid;
-        intHistrograms = new HashMap<>();
+        intHistograms = new HashMap<>();
         stringHistograms = new HashMap<>();
         this.ioCostPerPage = ioCostPerPage;
         int[] min = new int[tupleDesc.numFields()];
@@ -105,7 +96,7 @@ public class TableStats {
         Arrays.fill(max, Integer.MIN_VALUE);
         try {
             iterator.open();
-            while (iterator.hasNext()) {
+            while (iterator.hasNext()) {;
                 numTuple++;
                 Tuple t = iterator.next();
                 for (int i = 0; i < tupleDesc.numFields(); ++i) {
@@ -120,7 +111,7 @@ public class TableStats {
         }
         for (int i = 0; i < tupleDesc.numFields(); ++i) {
             if (tupleDesc.getFieldType(i) == Type.INT_TYPE) {
-                intHistrograms.put(tupleDesc.getFieldName(i), new IntHistogram(NUM_HIST_BINS, min[i], max[i]));
+                intHistograms.put(tupleDesc.getFieldName(i), new IntHistogram(NUM_HIST_BINS, min[i], max[i]));
             } else {
                 stringHistograms.put(tupleDesc.getFieldName(i), new StringHistogram(NUM_HIST_BINS));
             }
@@ -131,7 +122,7 @@ public class TableStats {
                 Tuple t = iterator.next();
                 for (int i = 0; i < tupleDesc.numFields(); ++i) {
                     if (tupleDesc.getFieldType(i) == Type.INT_TYPE) {
-                        IntHistogram intHistogram = intHistrograms.get(tupleDesc.getFieldName(i));
+                        IntHistogram intHistogram = intHistograms.get(tupleDesc.getFieldName(i));
                         intHistogram.addValue(((IntField)t.getField(i)).getValue());
                     } else {
                         StringHistogram stringHistogram = stringHistograms.get(tupleDesc.getFieldName(i));
@@ -185,7 +176,7 @@ public class TableStats {
      */
     public double avgSelectivity(int field, Predicate.Op op) {
         if (Database.getCatalog().getTupleDesc(tableid).getFieldType(field) == Type.INT_TYPE) {
-            return intHistrograms.get(Database.getCatalog().getDatabaseFile(tableid).getTupleDesc().getFieldName(field)).avgSelectivity();
+            return intHistograms.get(Database.getCatalog().getDatabaseFile(tableid).getTupleDesc().getFieldName(field)).avgSelectivity();
         } else {
             return stringHistograms.get(Database.getCatalog().getDatabaseFile(tableid).getTupleDesc().getFieldName(field)).avgSelectivity();
         }
@@ -203,7 +194,7 @@ public class TableStats {
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
         if (Database.getCatalog().getTupleDesc(tableid).getFieldType(field) == Type.INT_TYPE) {
-            return intHistrograms.get(Database.getCatalog().getDatabaseFile(tableid).getTupleDesc().getFieldName(field)).
+            return intHistograms.get(Database.getCatalog().getDatabaseFile(tableid).getTupleDesc().getFieldName(field)).
                     estimateSelectivity(op, ((IntField)constant).getValue());
         } else {
             return stringHistograms.get(Database.getCatalog().getDatabaseFile(tableid).getTupleDesc().getFieldName(field)).

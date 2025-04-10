@@ -2,6 +2,8 @@ package simpledb.optimizer;
 
 import simpledb.execution.Predicate;
 
+import java.util.Arrays;
+
 /**
  * A class to represent a fixed-width histogram over a single integer-based field.
  */
@@ -80,21 +82,22 @@ public class IntHistogram {
             return ratio;
         }
         if (op.equals(Predicate.Op.NOT_EQUALS)) {
-            return 1 - ratio;
+            return 1 - estimateSelectivity(Predicate.Op.EQUALS, v);
         }
-        if (op.equals(Predicate.Op.GREATER_THAN) || op.equals(Predicate.Op.GREATER_THAN_OR_EQ)) {
-            double contributeRatio = ratio * ((index + 1) * gap + min - v);
+        if (op.equals(Predicate.Op.GREATER_THAN)) {
+            double contributeRatio = ratio * ((index + 1) * gap + min - v - 1);
             for (int i = index + 1; i < buckets.length; ++i) {
                 contributeRatio += buckets[i] * 1.0 / total;
             }
             return contributeRatio;
         }
-        // less than equal || less than
-        double contributeRatio = ratio * (v - (index * gap + min));
-        for (int i = index - 1; i >= 0; --i) {
-            contributeRatio += buckets[i] * 1.0 / total;
+        if (op.equals(Predicate.Op.GREATER_THAN_OR_EQ)) {
+            return estimateSelectivity(Predicate.Op.GREATER_THAN, v - 1);
         }
-        return contributeRatio;
+        if (op.equals(Predicate.Op.LESS_THAN)) {
+            return 1 - estimateSelectivity(Predicate.Op.GREATER_THAN_OR_EQ, v);
+        }
+        return 1 - estimateSelectivity(Predicate.Op.GREATER_THAN, v);
     }
 
     /**
@@ -117,7 +120,6 @@ public class IntHistogram {
      * @return A string describing this histogram, for debugging purposes
      */
     public String toString() {
-        // TODO: some code goes here
-        return null;
+        return "IntHistogram:[min: " + min + ", max: " + max + ", buckets + " + Arrays.toString(buckets) +"]";
     }
 }
