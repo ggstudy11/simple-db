@@ -1,9 +1,6 @@
 package simpledb.storage;
 
-import simpledb.common.Database;
-import simpledb.common.DbException;
-import simpledb.common.DeadlockException;
-import simpledb.common.Permissions;
+import simpledb.common.*;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
@@ -43,59 +40,11 @@ public class BufferPool {
         }
 
 
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-            // 当缓存大小超过容量时，移除最旧的元素
-            return size() > capacity;
+        public boolean notEmpty() {
+            return capacity == size();
         }
     }
 
-    public static class LockManager {
-        private static class Lock {
-            public Set<TransactionId> tids = new HashSet<>();
-            public Permissions permit;
-            public Lock(TransactionId _tid, Permissions _permit) {
-                tids.add(_tid);
-                permit = _permit;
-            }
-        }
-        Map<PageId, Lock> locks = new HashMap<>();
-        public void initLock(PageId pid, TransactionId tid, Permissions permit) {
-            Lock lock = new Lock(tid, permit);
-            locks.put(pid, lock);
-        }
-        public boolean requireLock(PageId pid, TransactionId tid, Permissions permit) {
-            if (!locks.containsKey(pid)) {
-                initLock(pid, tid, permit);
-                return true;
-            }
-            Lock lock = locks.get(pid);
-            if (lock.tids.contains(tid)) {
-                if (lock.permit == Permissions.READ_ONLY && permit == Permissions.READ_WRITE) {
-                    // 共享锁 -> 排他锁
-                    lock.permit = permit;
-                }
-                return true;
-            }
-            if (lock.permit == Permissions.READ_ONLY && permit == Permissions.READ_ONLY) {
-                lock.tids.add(tid);
-                return true;
-            }
-            return false;
-        }
-        public void releaseLock(PageId pid, TransactionId tid) {
-            if (!locks.containsKey(pid)) {
-                return;
-            }
-            locks.remove(pid);
-        }
-        public boolean holdsLock(TransactionId tid, PageId pid) {
-            if (!locks.containsKey(pid)) {
-                return false;
-            }
-            return locks.get(pid).tids.contains(tid);
-        }
-    }
     /**
      * Default number of pages passed to the constructor. This is used by
      * other classes. BufferPool should use the numPages argument to the
@@ -145,10 +94,11 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // hint: use DbFile.readPage() to access Page of a DbFile
-       while (!lockManager.requireLock(pid, tid, perm)){
-           // 阻塞等待
-       }
+       lockManager.tryLock(pid, tid, perm);
        if (!pages.containsKey(pid)) {
+            if (pages.notEmpty()) {
+                evictPage();
+            }
             DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
             pages.put(pid, file.readPage(pid));
        }
@@ -174,15 +124,14 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      */
     public void transactionComplete(TransactionId tid) {
-        // TODO: some code goes here
-        // not necessary for lab1|lab2
+        transactionComplete(tid, true);
     }
 
     /**
      * Return true if the specified transaction has a lock on the specified page
      */
     public boolean holdsLock(TransactionId tid, PageId p) {
-        return lockManager.holdsLock(tid, p);
+        return lockManager.holdsLock(p, tid);
     }
 
     /**
@@ -193,10 +142,27 @@ public class BufferPool {
      * @param commit a flag indicating whether we should commit or abort
      */
     public void transactionComplete(TransactionId tid, boolean commit) {
-        // TODO: some code goes here
-        // not necessary for lab1|lab2
+        if (commit) {
+            try {
+                flushPages(tid);
+            } catch (IOException e) {
+                System.out.println("Something Wrong happened!");
+            }
+        } else {
+            restorePages(tid);
+        }
+        lockManager.releaseLock(tid);
     }
 
+     private void restorePages(TransactionId tid) {
+         for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
+             if (!tid.equals(entry.getValue().isDirty())) continue;
+             PageId pid = entry.getKey();
+             DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
+             Page page = file.readPage(pid);
+             pages.put(pid, page);
+         }
+     }
     /**
      * Add a tuple to the specified table on behalf of transaction tid.  Will
      * acquire a write lock on the page the tuple is added to and any other
@@ -256,6 +222,7 @@ public class BufferPool {
             if (page.isDirty() != null) {
                 DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
                 file.writePage(page);
+                page.markDirty(false, null);
             }
         }
     }
@@ -282,6 +249,7 @@ public class BufferPool {
         Page page = pages.get(pid);
         DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
         file.writePage(page);
+        page.markDirty(false, null);
     }
 
     /**
@@ -293,6 +261,7 @@ public class BufferPool {
             if (page.isDirty() == tid) {
                 DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
                 file.writePage(page);
+                page.markDirty(false, null);
             }
         }
     }
@@ -302,7 +271,14 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized void evictPage() throws DbException {
-        // not code here 
+        for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
+            if (entry.getValue().isDirty() != null) {
+                continue;
+            }
+            removePage(entry.getKey());
+            return;
+        }
+        throw new DbException("no page to evict");
     }
 
 }
