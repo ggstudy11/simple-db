@@ -30,8 +30,9 @@ public class BufferPool {
     private static int pageSize = DEFAULT_PAGE_SIZE;
 
     final LRUCache<PageId, Page> pages;
+    final LockManager lockManager;
 
-    public class LRUCache<K, V> extends LinkedHashMap<K, V> {
+    public static class LRUCache<K, V> extends LinkedHashMap<K, V> {
         private final int capacity;
 
         // 构造函数，初始化缓存容量
@@ -48,6 +49,53 @@ public class BufferPool {
             return size() > capacity;
         }
     }
+
+    public static class LockManager {
+        private static class Lock {
+            public Set<TransactionId> tids = new HashSet<>();
+            public Permissions permit;
+            public Lock(TransactionId _tid, Permissions _permit) {
+                tids.add(_tid);
+                permit = _permit;
+            }
+        }
+        Map<PageId, Lock> locks = new HashMap<>();
+        public void initLock(PageId pid, TransactionId tid, Permissions permit) {
+            Lock lock = new Lock(tid, permit);
+            locks.put(pid, lock);
+        }
+        public boolean requireLock(PageId pid, TransactionId tid, Permissions permit) {
+            if (!locks.containsKey(pid)) {
+                initLock(pid, tid, permit);
+                return true;
+            }
+            Lock lock = locks.get(pid);
+            if (lock.tids.contains(tid)) {
+                if (lock.permit == Permissions.READ_ONLY && permit == Permissions.READ_WRITE) {
+                    // 共享锁 -> 排他锁
+                    lock.permit = permit;
+                }
+                return true;
+            }
+            if (lock.permit == Permissions.READ_ONLY && permit == Permissions.READ_ONLY) {
+                lock.tids.add(tid);
+                return true;
+            }
+            return false;
+        }
+        public void releaseLock(PageId pid, TransactionId tid) {
+            if (!locks.containsKey(pid)) {
+                return;
+            }
+            locks.remove(pid);
+        }
+        public boolean holdsLock(TransactionId tid, PageId pid) {
+            if (!locks.containsKey(pid)) {
+                return false;
+            }
+            return locks.get(pid).tids.contains(tid);
+        }
+    }
     /**
      * Default number of pages passed to the constructor. This is used by
      * other classes. BufferPool should use the numPages argument to the
@@ -55,7 +103,6 @@ public class BufferPool {
      */
     public static final int DEFAULT_PAGES = 50;
 
-    private int numPages;
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -63,7 +110,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         pages = new LRUCache<>(numPages);
-        this.numPages = numPages;
+        lockManager = new LockManager();
     }
 
     public static int getPageSize() {
@@ -98,6 +145,9 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // hint: use DbFile.readPage() to access Page of a DbFile
+       while (!lockManager.requireLock(pid, tid, perm)){
+           // 阻塞等待
+       }
        if (!pages.containsKey(pid)) {
             DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
             pages.put(pid, file.readPage(pid));
@@ -115,8 +165,7 @@ public class BufferPool {
      * @param pid the ID of the page to unlock
      */
     public void unsafeReleasePage(TransactionId tid, PageId pid) {
-        // TODO: some code goes here
-        // not necessary for lab1|lab2
+        lockManager.releaseLock(pid, tid);
     }
 
     /**
@@ -133,9 +182,7 @@ public class BufferPool {
      * Return true if the specified transaction has a lock on the specified page
      */
     public boolean holdsLock(TransactionId tid, PageId p) {
-        // TODO: some code goes here
-        // not necessary for lab1|lab2
-        return false;
+        return lockManager.holdsLock(tid, p);
     }
 
     /**
