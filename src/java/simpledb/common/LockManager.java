@@ -89,8 +89,14 @@ public class LockManager {
 
     /* 释放某事务的所有锁 */
     public synchronized void releaseLock(TransactionId tid) {
+        List<PageId> toRemove = new ArrayList<>();
         for (Map.Entry<PageId, LockItem> entry : locks.entrySet()) {
-            releaseLock(entry.getKey(), tid);
+            if (holdsLock(entry.getKey(), tid)) {
+                toRemove.add(entry.getKey());
+            }
+        }
+        for (PageId pid : toRemove) {
+            releaseLock(pid, tid);
         }
 
         waitingGraph.remove(tid);

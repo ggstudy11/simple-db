@@ -185,8 +185,30 @@ public class BTreeFile implements DbFile {
     private BTreeLeafPage findLeafPage(TransactionId tid, Map<PageId, Page> dirtypages, BTreePageId pid, Permissions perm,
                                        Field f)
             throws DbException, TransactionAbortedException {
-        // TODO: some code goes here
-        return null;
+        // 获取Page
+        Page page = getPage(tid, dirtypages, pid, Permissions.READ_ONLY);
+        BTreePage bTreePage = (BTreePage) page;
+        BTreePageId bTreePageId = bTreePage.getId();
+        // 如果是内部节点继续递归
+        if (bTreePageId.pgcateg() == BTreePageId.INTERNAL) {
+            BTreeInternalPage bTreeInternalPage = (BTreeInternalPage) page;
+            Iterator<BTreeEntry> iterator = bTreeInternalPage.iterator();
+            BTreePageId next = iterator.next().getLeftChild(); // 最左侧第一个位置
+            while (iterator.hasNext()) {
+                if (null == f) {
+                    break;
+                }
+                BTreeEntry entry = iterator.next();
+                // 如果f大则选右边继续选择
+                if (entry.getKey().compare(Op.LESS_THAN, f)) {
+                    next = entry.getRightChild();
+                }
+            }
+            return findLeafPage(tid, dirtypages, next, perm, f);
+        } else {
+            // 如果是叶子节点直接返回
+            return (BTreeLeafPage)getPage(tid, dirtypages, pid, perm);
+        }
     }
 
     /**
