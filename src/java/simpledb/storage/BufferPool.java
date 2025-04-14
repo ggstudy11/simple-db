@@ -94,7 +94,7 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // hint: use DbFile.readPage() to access Page of a DbFile
-       lockManager.tryLock(pid, tid, perm);
+       lockManager.Lock(pid, tid, perm);
        if (!pages.containsKey(pid)) {
             if (pages.notEmpty()) {
                 evictPage();

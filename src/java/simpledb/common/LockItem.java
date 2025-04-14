@@ -12,10 +12,10 @@ import java.util.Set;
  * @description 页锁
  */
 public class LockItem {
-    private Set<TransactionId> tids;
+    private final Set<TransactionId> tids;
     private Permissions permit;
     public LockItem(TransactionId tid, Permissions permit) {
-        tids = Collections.synchronizedSet(new HashSet<>());
+        tids = new HashSet<>();
         tids.add(tid);
         this.permit = permit;
     }
@@ -29,6 +29,7 @@ public class LockItem {
         tids.add(tid);
     }
     public void setPermit(Permissions permit) {
+        // 用于锁升级
         this.permit = permit;
     }
     public void remove(TransactionId tid) {
@@ -39,8 +40,5 @@ public class LockItem {
     }
     public boolean containsTid(TransactionId tid) {
         return tids.contains(tid);
-    }
-    public void resetTids() {
-        tids.clear();
     }
 }
