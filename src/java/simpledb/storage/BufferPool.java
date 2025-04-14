@@ -183,8 +183,8 @@ public class BufferPool {
         DbFile f = Database.getCatalog().getDatabaseFile(tableId);
         List<Page> pages = f.insertTuple(tid, t);
         for (Page p : pages) {
-            this.pages.put(p.getId(), p);
             p.markDirty(true, tid);
+            this.pages.put(p.getId(), p);
         }
     }
 

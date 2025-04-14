@@ -19,7 +19,7 @@ public class LockManager {
     final ConcurrentHashMap<TransactionId, Set<TransactionId>> waitingGraph = new ConcurrentHashMap<>();
 
     public synchronized boolean tryLock(PageId pid, TransactionId tid, Permissions permit) throws TransactionAbortedException{
-        printInfo();
+        // printInfo();
         // 如果没有锁则上锁
         if (locks.get(pid) == null) {
             locks.put(pid, new LockItem(tid, permit));
