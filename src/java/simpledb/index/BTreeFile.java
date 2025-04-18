@@ -811,11 +811,12 @@ public class BTreeFile implements DbFile {
         }
         leftPage.setRightSiblingId(rightPage.getRightSiblingId());
         if (rightPage.getRightSiblingId() != null) {
-            BTreeLeafPage page = (BTreeLeafPage) getPage(tid, dirtypages, rightPage.getRightSiblingId(), Permissions.READ_ONLY);
+            BTreeLeafPage page = (BTreeLeafPage) getPage(tid, dirtypages, rightPage.getRightSiblingId(), Permissions.READ_WRITE);
             page.setLeftSiblingId(leftPage.getId());
         }
         setEmptyPage(tid, dirtypages, rightPage.getId().getPageNumber());
         dirtypages.put(leftPage.getId(), leftPage);
+        dirtypages.put(parent.getId(), parent);
 
         deleteParentEntry(tid, dirtypages, leftPage, parent, parentEntry);
     }
@@ -843,7 +844,6 @@ public class BTreeFile implements DbFile {
                                    BTreeInternalPage leftPage, BTreeInternalPage rightPage, BTreeInternalPage parent, BTreeEntry parentEntry)
             throws DbException, IOException, TransactionAbortedException {
 
-        // TODO: some code goes here
         //
         // Move all the entries from the right page to the left page, update
         // the parent pointers of the children in the entries that were moved,
@@ -866,6 +866,7 @@ public class BTreeFile implements DbFile {
         setEmptyPage(tid, dirtypages, rightPage.getId().getPageNumber());
         updateParentPointers(tid, dirtypages, leftPage);
         dirtypages.put(leftPage.getId(), leftPage);
+        dirtypages.put(parent.getId(), parent);
     }
 
     /**

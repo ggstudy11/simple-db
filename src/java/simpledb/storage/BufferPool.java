@@ -144,7 +144,13 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid, boolean commit) {
         if (commit) {
             try {
-                flushPages(tid);
+                for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
+                    Page page = entry.getValue();
+                    if (page.isDirty() == tid) {
+                        flushPage(page.getId());
+                        page.setBeforeImage();
+                    }
+                }
             } catch (IOException e) {
                 System.out.println("Something Wrong happened!");
             }
@@ -155,9 +161,12 @@ public class BufferPool {
     }
 
      private void restorePages(TransactionId tid) {
+         Set<PageId> pidToUpdate = new HashSet<>();
          for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
              if (!tid.equals(entry.getValue().isDirty())) continue;
-             PageId pid = entry.getKey();
+             pidToUpdate.add(entry.getKey());
+         }
+         for (PageId pid : pidToUpdate) {
              DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
              Page page = file.readPage(pid);
              pages.put(pid, page);
@@ -217,13 +226,13 @@ public class BufferPool {
      * break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
+        Set<Page> s = new HashSet<>();
         for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
             Page page = entry.getValue();
-            if (page.isDirty() != null) {
-                DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
-                file.writePage(page);
-                page.markDirty(false, null);
-            }
+            s.add(page);
+        }
+        for (Page p : s) {
+            flushPage(p.getId());
         }
     }
 
@@ -247,7 +256,10 @@ public class BufferPool {
      */
     private synchronized void flushPage(PageId pid) throws IOException {
         Page page = pages.get(pid);
-        DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+        if (page.isDirty() == null) return;
+        DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        Database.getLogFile().logWrite(page.isDirty(), page.getBeforeImage(), page);
+        Database.getLogFile().force();
         file.writePage(page);
         page.markDirty(false, null);
     }
@@ -256,13 +268,17 @@ public class BufferPool {
      * Write all pages of the specified transaction to disk.
      */
     public synchronized void flushPages(TransactionId tid) throws IOException {
+        Set<Page> pagesToChange = new HashSet<>();
         for (Map.Entry<PageId, Page> entry : pages.entrySet()) {
             Page page = entry.getValue();
             if (page.isDirty() == tid) {
-                DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
-                file.writePage(page);
-                page.markDirty(false, null);
+                pagesToChange.add(page);
             }
+        }
+        for (Page p : pagesToChange) {
+            DbFile file = Database.getCatalog().getDatabaseFile(p.getId().getTableId());
+            file.writePage(p);
+            p.markDirty(false, null);
         }
     }
 

@@ -4,6 +4,7 @@ import simpledb.common.Database;
 import simpledb.common.Debug;
 import simpledb.transaction.TransactionId;
 
+import javax.xml.crypto.Data;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
@@ -473,7 +474,27 @@ public class LogFile {
         synchronized (Database.getBufferPool()) {
             synchronized (this) {
                 preAppend();
-                // TODO: some code goes here
+                Long offset = tidToFirstLogRecord.get(tid.getId());
+                raf.seek(offset);
+                // Transaction Begin
+                while (true) {
+                    try {
+                        int recordType = raf.readInt();
+                        long transactionId = raf.readLong();
+                        if (recordType == UPDATE_RECORD) {
+                            Page before = readPageData(raf);
+                            Page after = readPageData(raf);
+                            if (transactionId == tid.getId()) {
+                                DbFile file = Database.getCatalog().getDatabaseFile(before.getId().getTableId());
+                                file.writePage(before);
+                                Database.getBufferPool().removePage(after.getId());
+                            }
+                        }
+                    } catch (IOException e) {
+                        break;
+                    }
+                    raf.readLong();
+                }
             }
         }
     }
@@ -501,8 +522,99 @@ public class LogFile {
     public void recover() throws IOException {
         synchronized (Database.getBufferPool()) {
             synchronized (this) {
+                print();
                 recoveryUndecided = false;
-                // TODO: some code goes here
+                Map<Long, Page[]> undoMap = new HashMap<>();
+                raf.seek(0);
+                long offset = raf.readLong();
+                if (offset != -1) {
+                    raf.seek(offset);
+                    raf.readInt();
+                    raf.readLong();
+                    int num = raf.readInt();
+                    while (num-- > 0) {
+                        long id = raf.readLong();
+                        long off = raf.readLong();
+                        raf.seek(off);
+                        while (true) {
+                            try {
+                                int recordType = raf.readInt();
+                                long transactionId = raf.readLong();
+                                if (recordType == UPDATE_RECORD) {
+                                    Page before = readPageData(raf);
+                                    Page after = readPageData(raf);
+                                    if (transactionId == id) {
+                                        Page[] pages = undoMap.computeIfAbsent(id, v -> new Page[2]);
+                                        if (pages[0] == null) {
+                                            pages[0] = before;
+                                        }
+                                        pages[1] = after;
+                                    }
+                                } else if (recordType == COMMIT_RECORD) {
+                                    if (transactionId == id) {
+                                        Page[] pages = undoMap.get(id);
+                                        if (pages == null) continue;
+                                        DbFile file = Database.getCatalog().getDatabaseFile(pages[1].getId().getTableId());
+                                        file.writePage(pages[1]);
+                                        undoMap.remove(transactionId);
+                                    }
+                                } else if (recordType == ABORT_RECORD) {
+                                    if (transactionId == id) {
+                                        Page[] pages = undoMap.get(id);
+                                        if (pages == null) continue;
+                                        DbFile file = Database.getCatalog().getDatabaseFile(pages[0].getId().getTableId());
+                                        file.writePage(pages[0]);
+                                        undoMap.remove(transactionId);
+                                    }
+                                }
+                            } catch (IOException e) {
+                                break;
+                            }
+                            raf.readLong();
+                        }
+                    }
+                } else {
+                    System.out.println("1");
+                    while (true) {
+                        try {
+                            int recordType = raf.readInt();
+                            long transactionId = raf.readLong();
+                            System.out.println(recordType);
+                            if (recordType == UPDATE_RECORD) {
+                                Page before = readPageData(raf);
+                                Page after = readPageData(raf);
+                                Page[] pages = undoMap.computeIfAbsent(transactionId, v -> new Page[2]);
+                                if (pages[0] == null) {
+                                    pages[0] = before;
+                                }
+                                pages[1] = after;
+                            } else if (recordType == COMMIT_RECORD) {
+                                Page[] pages = undoMap.get(transactionId);
+                                if (pages == null) continue;
+                                DbFile file = Database.getCatalog().getDatabaseFile(pages[1].getId().getTableId());
+                                file.writePage(pages[1]);
+                                undoMap.remove(transactionId);
+                            } else if (recordType == ABORT_RECORD) {
+                                Page[] pages = undoMap.get(transactionId);
+                                if (pages == null) continue;
+                                DbFile file = Database.getCatalog().getDatabaseFile(pages[0].getId().getTableId());
+                                file.writePage(pages[0]);
+                                undoMap.remove(transactionId);
+                            }
+                        } catch (IOException e) {
+                            break;
+                        }
+                        raf.readLong();
+                    }
+                }
+
+
+                // 将所有提交的页 提交
+                // 将所有abort的页 提交
+                // 将所有没有commit / abort的页 恢复
+                for (Page[] pages : undoMap.values()) {
+                    Database.getCatalog().getDatabaseFile(pages[0].getId().getTableId()).writePage(pages[0]);
+                }
             }
         }
     }
