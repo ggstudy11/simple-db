@@ -3,7 +3,6 @@ package simpledb.storage;
 import simpledb.common.Type;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 

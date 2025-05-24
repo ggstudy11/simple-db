@@ -3,7 +3,6 @@ package simpledb.storage;
 import simpledb.common.Catalog;
 import simpledb.common.Database;
 import simpledb.common.DbException;
-import simpledb.common.Debug;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
